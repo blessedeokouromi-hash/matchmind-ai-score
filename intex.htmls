@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grok MultiSport – Custom AI Builder</title>
+<style>
+  :root {
+    --bg: #0b1120; --card: #1e293b; --border: #334155; --text: #e2e8f0;
+    --muted: #94a3b8; --accent: #38bdf8; --green: #4ade80; --yellow: #facc15;
+    --red: #f87171; --purple: #a78bfa; --orange: #fb923c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  header { background: linear-gradient(135deg, #0f172a, #1e3a5f); padding: 1.1rem 1rem; border-bottom: 2px solid var(--accent); text-align: center; }
+  header h1 { font-size: 1.35rem; color: var(--accent); }
+  header p { color: var(--muted); font-size: 0.82rem; margin-top: 0.2rem; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0.7rem; }
+  .settings { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 0.8rem; margin-bottom: 0.75rem; }
+  .settings h2 { color: var(--accent); font-size: 0.95rem; margin-bottom: 0.3rem; }
+  .key-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+  .key-row input { flex: 1; min-width: 150px; padding: 0.4rem 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: #0f172a; color: var(--text); }
+  button { background: var(--accent); color: #0f172a; border: none; padding: 0.4rem 0.75rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.83rem; }
+  button:hover { background: #7dd3fc; }
+  button.secondary { background: #334155; color: var(--text); }
+  button.ai { background: linear-gradient(90deg, #8b5cf6, #6366f1); color: white; width: 100%; margin-top: 0.5rem; padding: 0.55rem; font-size: 0.95rem; }
+  button.copy { background: var(--green); color: #0f172a; margin-top: 0.35rem; }
+  .sport-tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0.65rem 0; justify-content: center; }
+  .sport-tab { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 0.28rem 0.6rem; border-radius: 999px; cursor: pointer; font-size: 0.77rem; }
+  .sport-tab.active, .sport-tab:hover { background: var(--accent); color: #0f172a; border-color: var(--accent); font-weight: 600; }
+  .status { text-align: center; padding: 0.45rem; color: var(--muted); font-size: 0.8rem; }
+  .status.error { color: var(--red); }
+  .status.success { color: var(--green); }
+
+  .ai-section {
+    background: linear-gradient(145deg, #1a1030, #1e1a3a);
+    border: 2px solid #8b5cf6;
+    border-radius: 14px;
+    padding: 1rem;
+    margin: 0.8rem 0;
+  }
+  .ai-section h2 { color: #c4b5fd; font-size: 1.05rem; margin-bottom: 0.35rem; }
+  .ai-section .subtitle { color: var(--muted); font-size: 0.76rem; margin-bottom: 0.8rem; }
+  .ai-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.6rem; }
+  @media (max-width: 500px) { .ai-controls { grid-template-columns: 1fr; } }
+  .ai-field label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 0.25rem; }
+  .ai-field input, .ai-field select {
+    width: 100%; padding: 0.45rem 0.5rem; border-radius: 8px;
+    border: 1px solid #5b4a9e; background: #0f0a1e; color: var(--text);
+    font-size: 0.95rem; font-weight: 600;
+  }
+  .ai-results { margin-top: 0.7rem; }
+  .combo-card { background: #0f0a1e; border: 1px solid #4c1d95; border-radius: 10px; padding: 0.7rem; margin-bottom: 0.6rem; }
+  .combo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem; flex-wrap: wrap; gap: 0.25rem; }
+  .combo-odds { font-size: 1.2rem; font-weight: 800; color: #c4b5fd; }
+  .combo-diff { font-size: 0.76rem; color: var(--muted); }
+  .combo-legs { font-size: 0.8rem; max-height: 210px; overflow-y: auto; }
+  .combo-leg { padding: 0.25rem 0; border-bottom: 1px solid #2e1065; display: flex; justify-content: space-between; gap: 0.35rem; }
+  .combo-leg:last-child { border-bottom: none; }
+  .code-box { background: #1e1b4b; border: 1px dashed #8b5cf6; border-radius: 8px; padding: 0.55rem; margin-top: 0.45rem; font-family: monospace; font-size: 0.88rem; word-break: break-all; color: #e9d5ff; }
+  .code-label { font-size: 0.7rem; color: var(--muted); margin-bottom: 0.2rem; }
+
+  .ticket-section {
+    background: linear-gradient(145deg, #0f1c2e, #1a2740);
+    border: 2px solid var(--green);
+    border-radius: 14px;
+    padding: 0.85rem;
+    margin: 0.8rem 0 1rem;
+  }
+  .ticket-section h2 { color: var(--green); font-size: 1rem; margin-bottom: 0.2rem; }
+  .ticket-section .subtitle { color: var(--muted); font-size: 0.74rem; margin-bottom: 0.55rem; }
+  .ticket-list { display: flex; flex-direction: column; gap: 0.32rem; }
+  .ticket-item {
+    display: grid; grid-template-columns: 24px 1fr auto auto; gap: 0.3rem; align-items: center;
+    background: #0b1220; border-radius: 8px; padding: 0.4rem 0.5rem; font-size: 0.8rem;
+    border-left: 3px solid var(--green);
+  }
+  .ticket-item .num { color: var(--muted); font-weight: 600; }
+  .ticket-item .match-info { line-height: 1.25; }
+  .ticket-item .teams { font-weight: 600; }
+  .ticket-item .league { font-size: 0.68rem; color: var(--muted); }
+  .ticket-item .pick { font-weight: 700; color: var(--green); white-space: nowrap; }
+  .ticket-item .prob { color: var(--yellow); font-weight: 600; min-width: 36px; text-align: right; }
+  .ticket-summary { margin-top: 0.5rem; text-align: center; font-size: 0.76rem; color: var(--muted); }
+
+  .match-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem; margin-bottom: 0.5rem; }
+  .match-card:hover { border-color: var(--accent); }
+  .match-header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.3rem; }
+  .teams { font-size: 0.93rem; font-weight: 600; }
+  .meta { color: var(--muted); font-size: 0.7rem; margin-top: 0.08rem; }
+  .score { font-size: 1.05rem; font-weight: 700; color: var(--accent); }
+  .live { color: var(--green); font-weight: 700; font-size: 0.68rem; }
+  .finished { color: var(--red); font-size: 0.68rem; }
+  .section-label { font-size: 0.7rem; color: var(--muted); margin: 0.4rem 0 0.2rem; text-transform: uppercase; letter-spacing: 0.4px; }
+  .best-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.28rem; margin-bottom: 0.25rem; }
+  .best-box {
+    background: linear-gradient(145deg, #0f172a, #1a2332);
+    border: 1px solid #2d3a4f; border-radius: 8px; padding: 0.38rem 0.22rem; text-align: center;
+  }
+  .best-box.top1 { border-color: #4ade80; }
+  .best-box.fh { border-color: #f59e0b; }
+  .best-box .rank { font-size: 0.56rem; color: var(--muted); text-transform: uppercase; }
+  .best-box .market { font-weight: 700; font-size: 0.8rem; margin: 0.06rem 0; }
+  .best-box .prob { font-size: 0.7rem; color: var(--green); }
+  .other-preds { display: grid; grid-template-columns: repeat(auto-fit, minmax(78px, 1fr)); gap: 0.22rem; margin-top: 0.25rem; }
+  .pred { background: #0f172a; border-radius: 6px; padding: 0.25rem; text-align: center; }
+  .pred .label { font-size: 0.56rem; color: var(--muted); text-transform: uppercase; }
+  .pred .val { font-weight: 700; margin-top: 0.04rem; font-size: 0.78rem; }
+  .gg-yes { color: var(--green); } .gg-no { color: var(--red); }
+  .over { color: var(--yellow); } .under { color: var(--purple); }
+  .league-title { color: var(--accent); margin: 0.85rem 0 0.28rem; font-size: 0.93rem; border-bottom: 1px solid var(--border); padding-bottom: 0.15rem; }
+  .info-box { background: #1e293b; border-left: 4px solid #8b5cf6; padding: 0.55rem 0.75rem; margin: 0.5rem 0; font-size: 0.75rem; color: var(--muted); }
+  footer { text-align: center; padding: 1rem; color: var(--muted); font-size: 0.7rem; border-top: 1px solid var(--border); margin-top: 1rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Grok MultiSport – Custom AI Builder</h1>
+  <p>Choose market type • Number of games • Target odds</p>
+</header>
+
+<div class="container">
+  <div class="settings">
+    <h2>🔑 API Key</h2>
+    <div class="key-row">
+      <input type="password" id="apiKey" placeholder="Paste your x-apisports-key">
+      <button onclick="saveKey()">Save</button>
+      <button class="secondary" onclick="clearKey()">Clear</button>
+    </div>
+    <div id="keyStatus" class="status"></div>
+  </div>
+
+  <div class="info-box">
+    <strong>New controls:</strong> Select the market type you want, how many games (legs), and your target odds. The AI will only use the market you choose.
+  </div>
+
+  <div class="ai-section">
+    <h2>🤖 Custom AI Odds Builder</h2>
+    <div class="subtitle">Choose exactly what you want the AI to build</div>
+
+    <div class="ai-controls">
+      <div class="ai-field">
+        <label>Market Type</label>
+        <select id="marketType">
+          <option value="any">Any Market (Best Mix)</option>
+          <option value="over15">Over 1.5 Goals only</option>
+          <option value="over25">Over 2.5 Goals only</option>
+          <option value="gg">GG Yes (BTTS) only</option>
+          <option value="1x">Double Chance 1X only</option>
+          <option value="x2">Double Chance X2 only</option>
+          <option value="home">Home Win only</option>
+          <option value="away">Away Win only</option>
+          <option value="1h_over05">1st Half Over 0.5 only</option>
+          <option value="1h_over15">1st Half Over 1.5 only</option>
+          <option value="1h_btts">1st Half BTTS only</option>
+          <option value="1h_1x">1st Half 1X only</option>
+          <option value="1h_only">Any First Half market</option>
+          <option value="ft_only">Any Full Time market</option>
+        </select>
+      </div>
+
+      <div class="ai-field">
+        <label>Number of Games (Legs)</label>
+        <input type="number" id="numLegs" value="8" min="2" max="20" step="1">
+      </div>
+
+      <div class="ai-field">
+        <label>Target Odds</label>
+        <input type="number" id="targetOdds" value="50" min="1.5" max="50000" step="1">
+      </div>
+
+      <div class="ai-field">
+        <label>Min Probability %</label>
+        <input type="number" id="minProb" value="55" min="40" max="85" step="1">
+      </div>
+    </div>
+
+    <button class="ai" onclick="buildOddsCombo()">Build My Ticket</button>
+    <div id="aiStatus" class="status"></div>
+    <div id="aiResults" class="ai-results"></div>
+  </div>
+
+  <div class="sport-tabs">
+    <button class="sport-tab active" data-sport="football">⚽ Football</button>
+    <button class="sport-tab" data-sport="basketball">🏀 Basketball</button>
+    <button class="sport-tab" data-sport="american-football">🏈 NFL</button>
+    <button class="sport-tab" data-sport="baseball">⚾ Baseball</button>
+    <button class="sport-tab" data-sport="hockey">🏒 Hockey</button>
+  </div>
+
+  <div style="text-align:center;margin:0.55rem 0;">
+    <button onclick="loadGames()">🔄 Load / Refresh Today's Games</button>
+  </div>
+
+  <div id="status" class="status">Load Football first</div>
+
+  <div id="ticketSection" class="ticket-section" style="display:none;">
+    <h2>🎟️ Best Ticket (Upcoming)</h2>
+    <div class="subtitle">Highest probability picks</div>
+    <div id="ticketList" class="ticket-list"></div>
+    <div id="ticketSummary" class="ticket-summary"></div>
+  </div>
+
+  <div id="games"></div>
+</div>
+
+<footer>
+  Grok MultiSport • Custom market + legs + target odds
+</footer>
+
+<script>
+const SPORTS = {
+  football: {
+    name: 'Football',
+    base: 'https://v3.football.api-sports.io',
+    endpoint: '/fixtures',
+    params: (d) => `date=${d}`,
+    parse: (data) => (data.response || []).map(g => ({
+      id: g.fixture.id,
+      league: g.league.name,
+      country: g.league.country || '',
+      time: new Date(g.fixture.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+      status: g.fixture.status.short,
+      home: g.teams.home.name,
+      away: g.teams.away.name,
+      scoreH: g.goals.home,
+      scoreA: g.goals.away,
+      isLive: ['1H','2H','ET','P','LIVE'].includes(g.fixture.status.short),
+      isFinished: ['FT','AET','PEN','PST','CANC','ABD','AWD','WO'].includes(g.fixture.status.short),
+      isUpcoming: ['NS','TBD','SUSP'].includes(g.fixture.status.short)
+    }))
+  },
+  basketball: {
+    name: 'Basketball',
+    base: 'https://v1.basketball.api-sports.io',
+    endpoint: '/games',
+    params: (d) => `date=${d}`,
+    parse: (data) => (data.response || []).map(g => ({
+      id: g.id, league: g.league?.name || 'Basketball', country: g.country?.name || '',
+      time: g.date ? new Date(g.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '',
+      status: g.status?.short || g.status,
+      home: g.teams?.home?.name || 'Home', away: g.teams?.away?.name || 'Away',
+      scoreH: g.scores?.home?.total ?? g.scores?.home, scoreA: g.scores?.away?.total ?? g.scores?.away,
+      isLive: ['Q1','Q2','Q3','Q4','OT','HT','LIVE'].includes(String(g.status?.short||'').toUpperCase()),
+      isFinished: ['FT','AOT'].includes(String(g.status?.short||'').toUpperCase()),
+      isUpcoming: ['NS','TBD'].includes(String(g.status?.short||'').toUpperCase())
+    }))
+  },
+  'american-football': {
+    name: 'American Football',
+    base: 'https://v1.american-football.api-sports.io',
+    endpoint: '/games',
+    params: (d) => `date=${d}`,
+    parse: (data) => (data.response || []).map(g => ({
+      id: g.game?.id || g.id, league: g.league?.name || 'NFL', country: 'USA',
+      time: g.game?.date?.date ? new Date(g.game.date.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '',
+      status: g.game?.status?.short || '',
+      home: g.teams?.home?.name || 'Home', away: g.teams?.away?.name || 'Away',
+      scoreH: g.scores?.home?.total, scoreA: g.scores?.away?.total,
+      isLive: ['Q1','Q2','Q3','Q4','OT','HT','LIVE'].includes(String(g.game?.status?.short||'').toUpperCase()),
+      isFinished: ['FT','AOT'].includes(String(g.game?.status?.short||'').toUpperCase()),
+      isUpcoming: ['NS','TBD'].includes(String(g.game?.status?.short||'').toUpperCase())
+    }))
+  },
+  baseball: {
+    name: 'Baseball',
+    base: 'https://v1.baseball.api-sports.io',
+    endpoint: '/games',
+    params: (d) => `date=${d}`,
+    parse: (data) => (data.response || []).map(g => ({
+      id: g.id, league: g.league?.name || 'MLB', country: g.country?.name || '',
+      time: g.date ? new Date(g.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '',
+      status: g.status?.short || '',
+      home: g.teams?.home?.name || 'Home', away: g.teams?.away?.name || 'Away',
+      scoreH: g.scores?.home?.total ?? g.scores?.home, scoreA: g.scores?.away?.total ?? g.scores?.away,
+      isLive: false, isFinished: ['FT'].includes(String(g.status?.short||'').toUpperCase()),
+      isUpcoming: ['NS','TBD'].includes(String(g.status?.short||'').toUpperCase())
+    }))
+  },
+  hockey: {
+    name: 'Ice Hockey',
+    base: 'https://v1.hockey.api-sports.io',
+    endpoint: '/games',
+    params: (d) => `date=${d}`,
+    parse: (data) => (data.response || []).map(g => ({
+      id: g.id, league: g.league?.name || 'NHL', country: g.country?.name || '',
+      time: g.date ? new Date(g.date).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '',
+      status: g.status?.short || '',
+      home: g.teams?.home?.name || 'Home', away: g.teams?.away?.name || 'Away',
+      scoreH: g.scores?.home, scoreA: g.scores?.away,
+      isLive: ['P1','P2','P3','OT','LIVE'].includes(String(g.status?.short||'').toUpperCase()),
+      isFinished: ['FT','AOT'].includes(String(g.status?.short||'').toUpperCase()),
+      isUpcoming: ['NS','TBD'].includes(String(g.status?.short||'').toUpperCase())
+    }))
+  }
+};
+
+let currentSport = 'football';
+let allUpcomingSelections = [];
+
+function hash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) - h) + str.charCodeAt(i) | 0;
+  return Math.abs(h);
+}
+
+function makePrediction(home, away) {
+  const h = hash(home + away);
+  const a = hash(away + home + 'x');
+  const homeXG = (h % 22) / 10 + 1.05;
+  const awayXG = (a % 20) / 10 + 0.95;
+  const total = homeXG + awayXG;
+
+  const fhHomeXG = homeXG * 0.43;
+  const fhAwayXG = awayXG * 0.43;
+  const fhTotal = fhHomeXG + fhAwayXG;
+
+  const pHome = 1 - Math.exp(-homeXG);
+  const pAway = 1 - Math.exp(-awayXG);
+  const bttsProb = pHome * pAway;
+
+  const over15 = Math.min(0.90, 1 - Math.exp(-total) * (1 + total));
+  const over25 = Math.min(0.80, 1 - Math.exp(-total) * (1 + total + total*total/2));
+
+  const fhOver05 = Math.min(0.88, 1 - Math.exp(-fhTotal));
+  const fhOver15 = Math.min(0.72, 1 - Math.exp(-fhTotal) * (1 + fhTotal));
+  const fhBtts = (1 - Math.exp(-fhHomeXG)) * (1 - Math.exp(-fhAwayXG));
+
+  let pHomeWin = Math.max(0.20, Math.min(0.60, 0.40 + (homeXG - awayXG) * 0.11));
+  let pAwayWin = Math.max(0.20, Math.min(0.60, 0.40 + (awayXG - homeXG) * 0.11));
+  let pDraw = Math.max(0.18, 1 - pHomeWin - pAwayWin);
+
+  const dc1X = Math.min(0.85, pHomeWin + pDraw);
+  const dcX2 = Math.min(0.85, pAwayWin + pDraw);
+
+  let fhHome = Math.max(0.18, Math.min(0.55, 0.36 + (fhHomeXG - fhAwayXG) * 0.12));
+  let fhAway = Math.max(0.18, Math.min(0.55, 0.36 + (fhAwayXG - fhHomeXG) * 0.12));
+  let fhDraw = Math.max(0.22, 1 - fhHome - fhAway);
+  const fh1X = Math.min(0.82, fhHome + fhDraw);
+  const fhX2 = Math.min(0.82, fhAway + fhDraw);
+
+  const candidates = [
+    { pick: 'Over 1.5', prob: over15, type: 'FT', key: 'over15' },
+    { pick: 'Over 2.5', prob: over25, type: 'FT', key: 'over25' },
+    { pick: 'GG Yes', prob: bttsProb, type: 'FT', key: 'gg' },
+    { pick: '1X', prob: dc1X, type: 'FT', key: '1x' },
+    { pick: 'X2', prob: dcX2, type: 'FT', key: 'x2' },
+    { pick: 'Home', prob: pHomeWin, type: 'FT', key: 'home' },
+    { pick: 'Away', prob: pAwayWin, type: 'FT', key: 'away' },
+    { pick: '1H Over 0.5', prob: fhOver05, type: '1H', key: '1h_over05' },
+    { pick: '1H Over 1.5', prob: fhOver15, type: '1H', key: '1h_over15' },
+    { pick: '1H BTTS', prob: fhBtts, type: '1H', key: '1h_btts' },
+    { pick: '1H 1X', prob: fh1X, type: '1H', key: '1h_1x' },
+    { pick: '1H X2', prob: fhX2, type: '1H', key: '1h_x2' },
+    { pick: '1H Home', prob: fhHome, type: '1H', key: '1h_home' },
+    { pick: '1H Away', prob: fhAway, type: '1H', key: '1h_away' }
+  ];
+  candidates.sort((a, b) => b.prob - a.prob);
+
+  return {
+    top3: candidates.slice(0, 3),
+    topFH: candidates.filter(c => c.type === '1H').slice(0, 3),
+    all: candidates,
+    btts: bttsProb > 0.52 ? 'Yes' : 'No',
+    ou25: over25 > 0.52 ? 'Over' : 'Under',
+    oneXtwo: pHomeWin > pAwayWin && pHomeWin > pDraw ? '1' : pAwayWin > pDraw ? '2' : 'X',
+    predScore: `${Math.max(0, Math.round(homeXG))}-${Math.max(0, Math.round(awayXG))}`
+  };
+}
+
+function probToOdds(prob) {
+  if (prob <= 0.04) return 18.0;
+  if (prob >= 0.93) return 1.10;
+  return Math.round((1 / prob) * 100) / 100;
+}
+
+function generateBookingCode(combo) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = 'GK';
+  const seed = hash(combo.legs.map(l => l.matchId + l.pick).join('') + Date.now());
+  for (let i = 0; i < 6; i++) code += chars[(seed + i * 17) % chars.length];
+  return code;
+}
+
+function createTicketText(combo, code) {
+  let text = `GROK TICKET CODE: ${code}\nTotal Odds: ${combo.totalOdds}\nLegs: ${combo.legs.length}\n--------------------------\n`;
+  combo.legs.forEach((l, i) => {
+    text += `${i+1}. ${l.home} vs ${l.away}\n   ${l.country} • ${l.time}\n   Market: ${l.pick} @ ${l.odds}\n`;
+  });
+  text += `--------------------------\nGenerated by Grok MultiSport\n`;
+  return text;
+}
+
+const savedKey = localStorage.getItem('apisports_key');
+if (savedKey) {
+  document.getElementById('apiKey').value = savedKey;
+  document.getElementById('keyStatus').textContent = 'Key loaded';
+  document.getElementById('keyStatus').className = 'status success';
+}
+
+function saveKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) return;
+  localStorage.setItem('apisports_key', key);
+  document.getElementById('keyStatus').textContent = 'Key saved successfully';
+  document.getElementById('keyStatus').className = 'status success';
+}
+function clearKey() {
+  localStorage.removeItem('apisports_key');
+  document.getElementById('apiKey').value = '';
+  document.getElementById('keyStatus').textContent = 'Key cleared';
+  document.getElementById('keyStatus').className = 'status';
+}
+
+document.querySelectorAll('.sport-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.sport-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentSport = tab.dataset.sport;
+    document.getElementById('games').innerHTML = '';
+    document.getElementById('ticketSection').style.display = 'none';
+    document.getElementById('aiResults').innerHTML = '';
+    allUpcomingSelections = [];
+    document.getElementById('status').textContent = `Selected: ${SPORTS[currentSport].name}`;
+  });
+});
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const old = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = old, 1500);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy Full Ticket', 1500);
+  });
+}
+
+// ========== CUSTOM AI BUILDER ==========
+function buildOddsCombo() {
+  const target = parseFloat(document.getElementById('targetOdds').value);
+  const numLegs = parseInt(document.getElementById('numLegs').value) || 8;
+  const minProbPct = parseFloat(document.getElementById('minProb').value) || 55;
+  const marketType = document.getElementById('marketType').value;
+  const minProb = minProbPct / 100;
+
+  if (!target || target < 1.5) {
+    document.getElementById('aiStatus').textContent = 'Enter a valid target odds';
+    document.getElementById('aiStatus').className = 'status error';
+    return;
+  }
+  if (numLegs < 2 || numLegs > 20) {
+    document.getElementById('aiStatus').textContent = 'Number of games must be between 2 and 20';
+    document.getElementById('aiStatus').className = 'status error';
+    return;
+  }
+  if (allUpcomingSelections.length < 2) {
+    document.getElementById('aiStatus').textContent = 'Load Football matches first';
+    document.getElementById('aiStatus').className = 'status error';
+    return;
+  }
+
+  document.getElementById('aiStatus').textContent = `Building ${numLegs} legs • ${marketType} • target ${target}...`;
+  document.getElementById('aiStatus').className = 'status';
+  document.getElementById('aiResults').innerHTML = '';
+
+  // Filter by market type
+  let filtered = allUpcomingSelections.filter(s => s.prob >= minProb);
+
+  if (marketType === 'over15') filtered = filtered.filter(s => s.key === 'over15');
+  else if (marketType === 'over25') filtered = filtered.filter(s => s.key === 'over25');
+  else if (marketType === 'gg') filtered = filtered.filter(s => s.key === 'gg');
+  else if (marketType === '1x') filtered = filtered.filter(s => s.key === '1x');
+  else if (marketType === 'x2') filtered = filtered.filter(s => s.key === 'x2');
+  else if (marketType === 'home') filtered = filtered.filter(s => s.key === 'home');
+  else if (marketType === 'away') filtered = filtered.filter(s => s.key === 'away');
+  else if (marketType === '1h_over05') filtered = filtered.filter(s => s.key === '1h_over05');
+  else if (marketType === '1h_over15') filtered = filtered.filter(s => s.key === '1h_over15');
+  else if (marketType === '1h_btts') filtered = filtered.filter(s => s.key === '1h_btts');
+  else if (marketType === '1h_1x') filtered = filtered.filter(s => s.key === '1h_1x');
+  else if (marketType === '1h_only') filtered = filtered.filter(s => s.type === '1H');
+  else if (marketType === 'ft_only') filtered = filtered.filter(s => s.type === 'FT');
+  // 'any' keeps everything
+
+  // Best market per match (to avoid same match twice)
+  const bestPerMatch = {};
+  filtered.forEach(s => {
+    if (!bestPerMatch[s.matchId] || s.prob > bestPerMatch[s.matchId].prob) {
+      bestPerMatch[s.matchId] = s;
+    }
+  });
+  let pool = Object.values(bestPerMatch)
+    .map(s => ({ ...s, odds: probToOdds(s.prob) }))
+    .sort((a, b) => b.prob - a.prob);
+
+  if (pool.length < numLegs) {
+    document.getElementById('aiStatus').textContent = `Only ${pool.length} matches available for this market. Try lower min probability or different market.`;
+    document.getElementById('aiStatus').className = 'status error';
+    return;
+  }
+
+  // Build combinations with exact number of legs
+  const results = [];
+
+  // Strategy 1: Highest probability first
+  function takeTop(n) {
+    const legs = pool.slice(0, n);
+    let odds = 1;
+    legs.forEach(l => odds *= l.odds);
+    return { legs, totalOdds: odds };
+  }
+
+  // Strategy 2: Balanced (mix high and medium)
+  function takeBalanced(n) {
+    const high = pool.filter(s => s.prob >= 0.68);
+    const mid = pool.filter(s => s.prob < 0.68);
+    const legs = [];
+    let i = 0, j = 0;
+    while (legs.length < n && (i < high.length || j < mid.length)) {
+      if (i < high.length && (legs.length % 2 === 0 || j >= mid.length)) {
+        legs.push(high[i++]);
+      } else if (j < mid.length) {
+        legs.push(mid[j++]);
+      } else {
+        legs.push(high[i++]);
+      }
+    }
+    let odds = 1;
+    legs.forEach(l => odds *= l.odds);
+    return { legs, totalOdds: odds };
+  }
+
+  // Strategy 3: Closest to target odds
+  function closestToTarget(n) {
+    // Greedy: keep adding the selection that gets us closest to target
+    const available = [...pool];
+    const legs = [];
+    let currentOdds = 1;
+    while (legs.length < n && available.length > 0) {
+      let bestIdx = 0;
+      let bestScore = Infinity;
+      for (let i = 0; i < available.length; i++) {
+        const newOdds = currentOdds * available[i].odds;
+        const score = Math.abs(newOdds - target);
+        // Prefer not overshooting too much early
+        const adjusted = legs.length < n - 1 ? score + (newOdds > target * 1.3 ? 100 : 0) : score;
+        if (adjusted < bestScore) {
+          bestScore = adjusted;
+          bestIdx = i;
+        }
+      }
+      legs.push(available[bestIdx]);
+      currentOdds *= available[bestIdx].odds;
+      available.splice(bestIdx, 1);
+    }
+    return { legs, totalOdds: currentOdds };
+  }
+
+  results.push(takeTop(numLegs));
+  results.push(takeBalanced(numLegs));
+  results.push(closestToTarget(numLegs));
+
+  // One more: reverse order for variety
+  const reversed = [...pool].reverse();
+  const legsR = reversed.slice(0, numLegs);
+  let oddsR = 1;
+  legsR.forEach(l => oddsR *= l.odds);
+  results.push({ legs: legsR, totalOdds: oddsR });
+
+  const ranked = results
+    .filter(r => r.legs.length === numLegs)
+    .map(r => ({
+      legs: r.legs,
+      totalOdds: Math.round(r.totalOdds * 100) / 100,
+      diff: Math.abs(r.totalOdds - target),
+      relDiff: Math.abs(r.totalOdds - target) / target
+    }))
+    .sort((a, b) => a.relDiff - b.relDiff);
+
+  // Unique
+  const uniqueResults = [];
+  const seen = new Set();
+  for (const r of ranked) {
+    const key = r.legs.map(l => l.matchId + l.pick).sort().join('|');
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueResults.push(r);
+    }
+  }
+
+  const top = uniqueResults.slice(0, 4);
+
+  if (top.length === 0) {
+    document.getElementById('aiStatus').textContent = 'Could not build combinations with these settings';
+    document.getElementById('aiStatus').className = 'status error';
+    return;
+  }
+
+  document.getElementById('aiStatus').textContent = `Built ${top.length} tickets • ${numLegs} legs • Market: ${marketType}`;
+  document.getElementById('aiStatus').className = 'status success';
+
+  let html = '';
+  top.forEach((combo, idx) => {
+    const code = generateBookingCode(combo);
+    const fullText = createTicketText(combo, code);
+    const legsHtml = combo.legs.map((l, i) => `
+      <div class="combo-leg">
+        <span>${i+1}. ${l.home} vs ${l.away} <span style="color:var(--muted);font-size:0.7rem;">(${l.country} • ${l.time})</span></span>
+        <span style="color:#c4b5fd;font-weight:600;white-space:nowrap;">${l.pick} @ ${l.odds}</span>
+      </div>`).join('');
+
+    html += `
+      <div class="combo-card">
+        <div class="combo-header">
+          <div class="combo-odds">Ticket ${idx+1}: ${combo.totalOdds.toLocaleString()}</div>
+          <div class="combo-diff">${combo.legs.length} legs • Diff ${combo.diff.toFixed(1)}</div>
+        </div>
+        <div class="combo-legs">${legsHtml}</div>
+        <div class="code-label">Booking-style Code:</div>
+        <div class="code-box">${code}</div>
+        <button class="copy" onclick="copyText(\`${fullText.replace(/`/g,'')}\`, this)">Copy Full Ticket</button>
+        <button class="secondary" style="margin-left:0.35rem;margin-top:0.35rem;" onclick="copyText('${code}', this)">Copy Code</button>
+      </div>`;
+  });
+  document.getElementById('aiResults').innerHTML = html;
+}
+
+async function loadGames() {
+  const key = localStorage.getItem('apisports_key') || document.getElementById('apiKey').value.trim();
+  if (!key) {
+    document.getElementById('status').textContent = 'Save your API key first';
+    document.getElementById('status').className = 'status error';
+    return;
+  }
+
+  const sport = SPORTS[currentSport];
+  document.getElementById('status').textContent = `Loading ${sport.name}...`;
+  document.getElementById('status').className = 'status';
+  document.getElementById('games').innerHTML = '';
+  document.getElementById('ticketSection').style.display = 'none';
+  document.getElementById('aiResults').innerHTML = '';
+  allUpcomingSelections = [];
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  try {
+    const url = `${sport.base}${sport.endpoint}?${sport.params(today)}`;
+    const res = await fetch(url, { headers: { 'x-apisports-key': key } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.errors && Object.keys(data.errors).length) throw new Error(JSON.stringify(data.errors));
+
+    const games = sport.parse(data);
+    if (games.length === 0) {
+      document.getElementById('status').textContent = `No ${sport.name} games today`;
+      return;
+    }
+
+    const upcomingCount = games.filter(g => g.isUpcoming).length;
+    document.getElementById('status').textContent = `${games.length} total • ${upcomingCount} upcoming`;
+    document.getElementById('status').className = 'status success';
+
+    if (currentSport === 'football') {
+      const allPicks = [];
+      games.forEach(g => {
+        if (!g.isUpcoming) return;
+        const pred = makePrediction(g.home, g.away);
+        pred.all.forEach(c => {
+          allUpcomingSelections.push({
+            matchId: g.id, home: g.home, away: g.away, country: g.country,
+            league: g.league, time: g.time, pick: c.pick, prob: c.prob,
+            type: c.type, key: c.key
+          });
+        });
+        const best = pred.top3[0];
+        if (best.prob >= 0.58) {
+          allPicks.push({
+            home: g.home, away: g.away, country: g.country, league: g.league,
+            time: g.time, pick: best.pick, prob: best.prob
+          });
+        }
+      });
+
+      allPicks.sort((a, b) => b.prob - a.prob);
+      const bestTicket = allPicks.slice(0, 15);
+      if (bestTicket.length > 0) {
+        let ticketHtml = '';
+        bestTicket.forEach((t, i) => {
+          ticketHtml += `
+            <div class="ticket-item">
+              <div class="num">${i+1}.</div>
+              <div class="match-info">
+                <div class="teams">${t.home} vs ${t.away}</div>
+                <div class="league">${t.country} • ${t.league} • ${t.time}</div>
+              </div>
+              <div class="pick">${t.pick}</div>
+              <div class="prob">${(t.prob*100).toFixed(0)}%</div>
+            </div>`;
+        });
+        document.getElementById('ticketList').innerHTML = ticketHtml;
+        const avg = bestTicket.reduce((s, t) => s + t.prob, 0) / bestTicket.length;
+        document.getElementById('ticketSummary').innerHTML = `${bestTicket.length} picks • Avg: <strong style="color:var(--green)">${(avg*100).toFixed(1)}%</strong>`;
+        document.getElementById('ticketSection').style.display = 'block';
+      }
+    }
+
+    const byLeague = {};
+    const sorted = [...games].sort((a, b) => {
+      if (a.isUpcoming && !b.isUpcoming) return -1;
+      if (!a.isUpcoming && b.isUpcoming) return 1;
+      if (a.isLive && !b.isLive) return -1;
+      return 0;
+    });
+    sorted.forEach(g => {
+      const k = `${g.country} • ${g.league}`;
+      if (!byLeague[k]) byLeague[k] = [];
+      byLeague[k].push(g);
+    });
+
+    let html = '';
+    for (const [leagueKey, list] of Object.entries(byLeague)) {
+      html += `<div class="league-title">${leagueKey}</div>`;
+      list.forEach(g => {
+        const scoreStr = (g.scoreH != null && g.scoreA != null) ? `${g.scoreH}-${g.scoreA}` : 'vs';
+        let badge = g.isLive ? `<span class="live">● LIVE</span>` : g.isFinished ? `<span class="finished">FT</span>` : `<span style="color:var(--accent);font-size:0.68rem;">NS</span>`;
+
+        let marketsHtml = '';
+        if (currentSport === 'football') {
+          const p = makePrediction(g.home, g.away);
+          marketsHtml = `
+            <div class="section-label">Full Time – Top 3</div>
+            <div class="best-row">
+              ${p.top3.map((t, i) => `
+                <div class="best-box ${i===0?'top1':''}">
+                  <div class="rank">#${i+1}</div>
+                  <div class="market">${t.pick}</div>
+                  <div class="prob">${(t.prob*100).toFixed(0)}%</div>
+                </div>`).join('')}
+            </div>
+            <div class="section-label">First Half – Top 3</div>
+            <div class="best-row">
+              ${p.topFH.map((t, i) => `
+                <div class="best-box fh">
+                  <div class="rank">1H #${i+1}</div>
+                  <div class="market">${t.pick}</div>
+                  <div class="prob">${(t.prob*100).toFixed(0)}%</div>
+                </div>`).join('')}
+            </div>
+            <div class="other-preds">
+              <div class="pred"><div class="label">Pred FT</div><div class="val" style="color:var(--accent)">${p.predScore}</div></div>
+              <div class="pred"><div class="label">BTTS</div><div class="val ${p.btts==='Yes'?'gg-yes':'gg-no'}">${p.btts}</div></div>
+              <div class="pred"><div class="label">O/U 2.5</div><div class="val ${p.ou25==='Over'?'over':'under'}">${p.ou25}</div></div>
+              <div class="pred"><div class="label">1X2</div><div class="val">${p.oneXtwo==='1'?'Home':p.oneXtwo==='2'?'Away':'Draw'}</div></div>
+            </div>`;
+        } else {
+          marketsHtml = `<div class="other-preds">
+            <div class="pred"><div class="label">Status</div><div class="val">${g.status||'NS'}</div></div>
+            <div class="pred"><div class="label">Score</div><div class="val score">${scoreStr}</div></div>
+          </div>`;
+        }
+
+        html += `
+          <div class="match-card" style="${g.isFinished?'opacity:0.6':''}">
+            <div class="match-header">
+              <div>
+                <div class="teams">${g.home} <span style="color:var(--muted)">vs</span> ${g.away} ${badge}</div>
+                <div class="meta">${g.time} • ${g.country} • ${g.status||''}</div>
+              </div>
+              <div class="score">${scoreStr}</div>
+            </div>
+            ${marketsHtml}
+          </div>`;
+      });
+    }
+    document.getElementById('games').innerHTML = html;
+
+  } catch (err) {
+    console.error(err);
+    document.getElementById('status').textContent = `Error: ${err.message}`;
+    document.getElementById('status').className = 'status error';
+  }
+}
+</script>
+</body>
+</html>
